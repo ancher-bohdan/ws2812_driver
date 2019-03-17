@@ -263,7 +263,7 @@ int ws2812_transfer_recurrent(char *r_exp, char *g_exp, char *b_exp, enum suppor
 {
     uint8_t i, j;
     struct update_context *update_r, *update_b, *update_g;
-    struct __led_buffer_node *tmp = led_buffer.read;
+    struct __led_buffer_node *tmp;
 
     if(count == 0) return EOK;
 
@@ -278,6 +278,7 @@ int ws2812_transfer_recurrent(char *r_exp, char *g_exp, char *b_exp, enum suppor
     if(update_b == NULL || update_r == NULL || update_g == NULL) return ENOMEM;
 
     __prepare_list_handle();
+    tmp = led_buffer.read;
 
     switch (scheme)
     {
@@ -294,7 +295,9 @@ int ws2812_transfer_recurrent(char *r_exp, char *g_exp, char *b_exp, enum suppor
     /* Reset sequence */
     memset(tmp->buffer, 0, BUFFER_SIZE * WORDS_PER_LED * 4);
     tmp = tmp->next;
+    count++;
 
+    /* Fill all chain in ring buffer to increase relability */
     for(i = 1; i < BUFFER_COUNT; i++)
     {
         for(j = 0; j < BUFFER_SIZE; j++)
