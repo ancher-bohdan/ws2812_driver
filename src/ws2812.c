@@ -225,7 +225,7 @@ exit:
  * @param   stop_dma - function, that stop or abort dma transaction 
  * @retval  zero in success, error code otherwise
  */
-int initialise_buffer(void (*start_dma)(void *ptr, uint16_t size), void (*stop_dma)())
+int ws2812_initialise(void (*start_dma)(void *ptr, uint16_t size), void (*stop_dma)())
 {
     struct __led_buffer_node **last;
 

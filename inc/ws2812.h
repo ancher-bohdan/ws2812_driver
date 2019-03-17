@@ -97,7 +97,7 @@ enum supported_colors {
   #define assert_param(expr) ((void)0U)
 #endif
 
-int initialise_buffer(void (*start_dma)(void *ptr, uint16_t size), void (*stop_dma)());
+int ws2812_initialise(void (*start_dma)(void *ptr, uint16_t size), void (*stop_dma)());
 int ws2812_transfer_recurrent(char *r_exp, char *g_exp, char *b_exp, enum supported_colors scheme, uint32_t count);
 void ws2812_interrupt();
 
