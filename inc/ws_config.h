@@ -18,7 +18,7 @@
 #define WORDS_PER_LED   24
 
 /* Value, that represent bit 1 in __dma_buffer struct */
-#define LED_CODE_ONE    59
+#define LED_CODE_ONE    65
 
 /* Value, that represent bit 0 in __dma_buffer struct */
 #define LED_CODE_ZERO   26

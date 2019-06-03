@@ -23,9 +23,17 @@ enum __led_buffer_state {
 };
 
 struct __dma_buffer {
+#ifdef DMA_TRANSACTION_32
     uint32_t G[8];
     uint32_t R[8];
     uint32_t B[8];
+#elif DMA_TRANSACTION_16
+    uint16_t G[8];
+    uint16_t R[8];
+    uint16_t B[8];
+#else
+    #error "Define size of DMA transaction"
+#endif
 };
 
 struct __abstract {
