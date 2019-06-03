@@ -192,7 +192,7 @@ static struct update_context *parse_recurrent_param(char *param)
         result->b = b;
         result->k = k;
         
-        token = strchr(NULL, ";");
+        token = strchr(param, ';');
         code = sscanf(token, ";%d...%d", &k, &b);
 
         if(code != 2) goto error;
