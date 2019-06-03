@@ -159,8 +159,7 @@ static struct update_context *parse_recurrent_param(char *param)
         return result;
     }
 
-    token = strtok(param, ";");
-    code = sscanf(token, "%d*%3s+%d", &k, func, &b);
+    code = sscanf(param, "%d*%3s+%d", &k, func, &b);
 
     if(code != 3) goto error;
 
@@ -174,8 +173,8 @@ static struct update_context *parse_recurrent_param(char *param)
         result->b = b;
         result->k = k;
         
-        token = strtok(NULL, ";");
-        code = sscanf(token, "%d...%d", &k, &b);
+        token = strchr(param, ';');
+        code = sscanf(token, ";%d...%d", &k, &b);
 
         if(code != 2) goto error;
 
@@ -193,8 +192,8 @@ static struct update_context *parse_recurrent_param(char *param)
         result->b = b;
         result->k = k;
         
-        token = strtok(NULL, ";");
-        code = sscanf(token, "%d...%d", &k, &b);
+        token = strchr(NULL, ";");
+        code = sscanf(token, ";%d...%d", &k, &b);
 
         if(code != 2) goto error;
 
