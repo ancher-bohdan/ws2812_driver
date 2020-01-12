@@ -2,6 +2,8 @@
 #define __LED_DRIVER__
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 #include "ws_config.h"
 
@@ -50,6 +52,7 @@ struct ws2812_operation_fn_table {
     void (*hw_stop_dma) ();
     void (*hw_start_timer) ();
     void (*hw_stop_timer) ();
+    void (*hw_delay) (uint32_t delay);
 };
 
 struct ws2812_driver {
@@ -61,6 +64,8 @@ struct ws2812_driver {
     uint8_t buffer_count;
 
     enum driver_state state;
+
+    uint32_t led_count;
 
     struct ws2812_driver_private *priv;
     struct ws2812_operation_fn_table *fn_table;
@@ -78,5 +83,8 @@ struct ws2812_driver {
 };
 
 int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_driver *driver);
+
+void __rgb2dma(struct color_representation *in, struct __dma_buffer *dst);
+void __hsv2dma(struct color_representation *in, struct __dma_buffer *dst);
 
 #endif //__LED_DRIVER__
