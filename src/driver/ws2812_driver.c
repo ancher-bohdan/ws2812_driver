@@ -1,6 +1,8 @@
 #include "driver/led_driver.h"
 #include "driver/private.h"
 
+#include <math.h>
+
 void dma_interrupt_routine(struct ws2812_driver *driver);
 void tim_interrupt_routine(struct ws2812_driver *driver);
 void ws2812_driver_suspend(struct ws2812_driver *driver);
@@ -62,6 +64,9 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
     driver->driver_stop = ws2812_driver_stop;
     driver->driver_resume = ws2812_driver_resume;
     driver->driver_suspend = ws2812_driver_suspend;
+    
+    driver->timer_interrupt = tim_interrupt_routine;
+    driver->dma_interrupt = dma_interrupt_routine;
 
     driver->priv = (struct ws2812_driver_private *)malloc(sizeof(struct ws2812_driver_private));
 
@@ -154,9 +159,11 @@ void ws2812_driver_stop(struct ws2812_driver *driver)
     driver->state = DR_STATE_IDLE;
 }
 
-void __rgb2dma(struct color_representation *in, struct __dma_buffer *dst)
+void __rgb2dma(struct driver_buffer_node *node, int offset)
 {
     uint8_t i;
+    struct color_representation *in = &(node->color[offset]);
+    struct __dma_buffer *dst = &(node->buffer[offset]);
 
     for(i = 0; i < 8; i++)
     {
@@ -212,9 +219,11 @@ void __hsv2rgb(struct color_representation *src, struct color_representation *ds
     }
 }
 
-void __hsv2dma(struct color_representation *in, struct __dma_buffer *dst)
+void __hsv2dma(struct driver_buffer_node *node, int offset)
 {
     uint8_t i;
+    struct color_representation *in = &(node->color[offset]);
+    struct __dma_buffer *dst = &(node->buffer[offset]);
     struct color_representation tmp;
 
     __hsv2rgb(in, &tmp);

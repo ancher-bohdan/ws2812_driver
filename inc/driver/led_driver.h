@@ -84,7 +84,7 @@ struct ws2812_driver {
 
 int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_driver *driver);
 
-void __rgb2dma(struct color_representation *in, struct __dma_buffer *dst);
-void __hsv2dma(struct color_representation *in, struct __dma_buffer *dst);
+void __rgb2dma(struct driver_buffer_node *node, int offset);
+void __hsv2dma(struct driver_buffer_node *node, int offset);
 
 #endif //__LED_DRIVER__
