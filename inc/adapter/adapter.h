@@ -11,7 +11,7 @@ struct adapter
 
     bool is_continue;
 
-    void (*convert_to_dma)(struct color_representation *in, struct __dma_buffer *dst);
+    void (*convert_to_dma)(struct driver_buffer_node *node, int offset);
 
     //TODO: Replace stubs by originator object, when originator layer will be ready
     uint16_t (*originator_first_stub)();
@@ -24,6 +24,7 @@ enum supported_color_scheme {
     HSV
 };
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter);
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, enum supported_color_scheme scheme);
+void adapter_process(struct adapter *adapter);
 
 #endif /*__ADAPTER_INIT__ */

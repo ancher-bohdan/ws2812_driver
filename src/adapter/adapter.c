@@ -1,5 +1,20 @@
 #include "adapter/adapter.h"
 
+uint16_t first_stub()
+{
+    return 255;
+}
+
+uint8_t second_stub()
+{
+    return 0;
+}
+
+uint8_t third_stub()
+{
+    return 0;
+}
+
 int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, enum supported_color_scheme scheme)
 {
     adapter = (struct adapter *) malloc (sizeof(struct adapter));
@@ -11,6 +26,10 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, 
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
     
+    adapter->originator_first_stub = first_stub;
+    adapter->originator_second_stub = second_stub;
+    adapter->originator_third_stub = third_stub;
+    
     if(scheme == RGB)
     {
         adapter->convert_to_dma = __rgb2dma;
@@ -20,7 +39,6 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, 
         adapter->convert_to_dma = __hsv2dma;
     }
     
-
     return ws2812_driver_init(fn, &adapter->base);
 }
 
@@ -44,10 +62,11 @@ void adapter_process(struct adapter *adapter)
                     adapter->base.write->color[i].second = adapter->originator_second_stub();
                     adapter->base.write->color[i].third = adapter->originator_third_stub();
 
-                    adapter->convert_to_dma(&(adapter->base.write->color[i]), adapter->base.write->buffer);
+                    adapter->convert_to_dma(adapter->base.write, i);
                     adapter->flash_led_count++;
                 }
 
+                //TODO: Possible race condition. Need lock
                 adapter->base.write->state = DRBUF_STATE_BUSY;
                 adapter->base.write = adapter->base.write->next;
             }
