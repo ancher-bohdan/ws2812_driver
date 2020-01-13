@@ -15,9 +15,11 @@ uint8_t third_stub()
     return 0;
 }
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, enum supported_color_scheme scheme)
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme)
 {
-    adapter = (struct adapter *) malloc (sizeof(struct adapter));
+    int result = 0;
+    struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
+
     if(adapter == NULL)
     {
         return ENOMEM;
@@ -39,7 +41,11 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter *adapter, 
         adapter->convert_to_dma = __hsv2dma;
     }
     
-    return ws2812_driver_init(fn, &adapter->base);
+    result = ws2812_driver_init(fn, &adapter->base);
+    
+    *out_adapter = adapter;
+
+    return result;
 }
 
 void adapter_process(struct adapter *adapter)

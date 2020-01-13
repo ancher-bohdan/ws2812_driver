@@ -19,7 +19,7 @@ static bool check_all_buffer_node_state(struct ws2812_driver *driver, enum drive
     while(result && (iterator->next != driver->start))
     {
         iterator = iterator->next;
-        result = (iterator->state == DRBUF_STATE_FREE);
+        result = (iterator->state == expected_state);
     }
     return result;
 }
