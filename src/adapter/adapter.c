@@ -56,6 +56,8 @@ void adapter_process(struct adapter *adapter)
 
     while(adapter->is_continue)
     {
+        adapter->base.dma_swallow_workaround(&adapter->base);
+
         while(adapter->flash_led_count < adapter->base.led_count)
         {
             if(adapter->base.read != adapter->base.write
@@ -81,6 +83,9 @@ void adapter_process(struct adapter *adapter)
         adapter->flash_led_count = 0;
 
         while(adapter->base.state != DR_STATE_SUSPEND);
+
+        adapter->base.write = adapter->base.start;
+        adapter->base.read = adapter->base.start;
 
         adapter->base.fn_table->hw_delay(500);
     }

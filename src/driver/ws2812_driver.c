@@ -2,6 +2,7 @@
 #include "driver/private.h"
 
 #include <math.h>
+#include <string.h>
 
 void dma_interrupt_routine(struct ws2812_driver *driver);
 void tim_interrupt_routine(struct ws2812_driver *driver);
@@ -9,6 +10,7 @@ void ws2812_driver_suspend(struct ws2812_driver *driver);
 void ws2812_driver_resume(struct ws2812_driver *driver);
 void ws2812_driver_start(struct ws2812_driver *driver);
 void ws2812_driver_stop(struct ws2812_driver *driver);
+void ws2812_driver_dma_workaround(struct ws2812_driver *driver);
 
 
 static bool check_all_buffer_node_state(struct ws2812_driver *driver, enum driver_buffer_state expected_state)
@@ -67,6 +69,8 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
     
     driver->timer_interrupt = tim_interrupt_routine;
     driver->dma_interrupt = dma_interrupt_routine;
+
+    driver->dma_swallow_workaround = ws2812_driver_dma_workaround;
 
     driver->priv = (struct ws2812_driver_private *)malloc(sizeof(struct ws2812_driver_private));
 
@@ -157,6 +161,21 @@ void ws2812_driver_stop(struct ws2812_driver *driver)
         driver->fn_table->hw_stop_timer();
     }
     driver->state = DR_STATE_IDLE;
+}
+
+void ws2812_driver_dma_workaround(struct ws2812_driver *driver)
+{
+    memset(driver->write->buffer, 0, driver->buffer_size * WORDS_PER_LED
+#ifdef DMA_TRANSACTION_32
+        * 4
+#elif DMA_TRANSACTION_16
+        * 2
+#else
+    #warning "DMA_TRANSACTION_32 or DMA_TRANSACTION_16 are missing. Assuming DMA data with - byte (8 bit)"
+#endif
+    );
+    driver->write->state = DRBUF_STATE_BUSY;
+    driver->write = driver->write->next;
 }
 
 void __rgb2dma(struct driver_buffer_node *node, int offset)

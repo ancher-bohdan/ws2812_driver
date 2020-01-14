@@ -80,6 +80,8 @@ struct ws2812_driver {
     void (*driver_suspend)(struct ws2812_driver *driver);
     void (*driver_resume)(struct ws2812_driver *driver);
 
+    void (*dma_swallow_workaround)(struct ws2812_driver *driver);
+
 };
 
 int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_driver *driver);
