@@ -2,6 +2,7 @@
 #define __ADAPTER_INIT__
 
 #include "driver/led_driver.h"
+#include "source/source_aggregator.h"
 
 struct adapter
 {
@@ -13,10 +14,7 @@ struct adapter
 
     void (*convert_to_dma)(struct driver_buffer_node *node, int offset);
 
-    //TODO: Replace stubs by originator object, when originator layer will be ready
-    uint16_t (*originator_first_stub)();
-    uint8_t (*originator_second_stub)();
-    uint8_t (*originator_third_stub)();
+    struct source_aggregator *aggregator;
 };
 
 enum supported_color_scheme {
@@ -24,7 +22,7 @@ enum supported_color_scheme {
     HSV
 };
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme);
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme, struct source_aggregator *aggregator);
 void adapter_process(struct adapter *adapter);
 
 #endif /*__ADAPTER_INIT__ */

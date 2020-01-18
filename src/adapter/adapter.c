@@ -15,7 +15,7 @@ uint8_t third_stub()
     return 0;
 }
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme)
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme, struct source_aggregator *aggregator)
 {
     int result = 0;
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
@@ -27,10 +27,7 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adap
 
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
-    
-    adapter->originator_first_stub = first_stub;
-    adapter->originator_second_stub = second_stub;
-    adapter->originator_third_stub = third_stub;
+    adapter->aggregator = aggregator;
     
     if(scheme == RGB)
     {
@@ -66,9 +63,9 @@ void adapter_process(struct adapter *adapter)
                 uint8_t i = 0;
                 for(i = 0; i < adapter->base.buffer_size; i++)
                 {
-                    adapter->base.write->color[i].first = adapter->originator_first_stub();
-                    adapter->base.write->color[i].second = adapter->originator_second_stub();
-                    adapter->base.write->color[i].third = adapter->originator_third_stub();
+                    adapter->base.write->color[i].first = adapter->aggregator->first->get_value(adapter->aggregator->first);
+                    adapter->base.write->color[i].second = adapter->aggregator->second->get_value(adapter->aggregator->second);
+                    adapter->base.write->color[i].third = adapter->aggregator->third->get_value(adapter->aggregator->third);
 
                     adapter->convert_to_dma(adapter->base.write, i);
                     adapter->flash_led_count++;
@@ -81,6 +78,10 @@ void adapter_process(struct adapter *adapter)
         }
 
         adapter->flash_led_count = 0;
+
+        adapter->aggregator->first->reset_sequence(adapter->aggregator->first);
+        adapter->aggregator->second->reset_sequence(adapter->aggregator->second);
+        adapter->aggregator->third->reset_sequence(adapter->aggregator->third);
 
         while(adapter->base.state != DR_STATE_SUSPEND);
 
