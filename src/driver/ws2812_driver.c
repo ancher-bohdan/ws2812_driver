@@ -74,6 +74,8 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
 
     driver->priv = (struct ws2812_driver_private *)malloc(sizeof(struct ws2812_driver_private));
 
+    memset(driver->priv, 0, sizeof(struct ws2812_driver_private));
+
     if(driver->priv == NULL)
     {
         free(driver);
@@ -138,7 +140,6 @@ void ws2812_driver_resume(struct ws2812_driver *driver)
     driver->fn_table->hw_stop_timer();
 
     driver->state = DR_STATE_RUNNING;
-    driver->read = driver->write = driver->start;
 
     driver->fn_table->hw_start_dma(driver->read->buffer, driver->buffer_count * driver->buffer_size * WORDS_PER_LED);
 }
