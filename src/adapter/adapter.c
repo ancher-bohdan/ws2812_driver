@@ -1,6 +1,27 @@
 #include "adapter/adapter.h"
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme, struct source_aggregator *aggregator)
+static struct source_config default_config =
+{
+    .k = 0,
+    .b = 100,
+    .change_step = 0,
+    .y_max = 255,
+    .y_min = 0,
+};
+
+static int adapter_set_source_originator_default(struct adapter *adapter)
+{
+    adapter->aggregator = make_source_aggregator_from_config(&default_config, &default_config, &default_config);
+
+    if(adapter->aggregator == NULL)
+    {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme)
 {
     int result = 0;
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
@@ -12,7 +33,7 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adap
 
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
-    adapter->aggregator = aggregator;
+    adapter->aggregator = NULL;
     
     if(scheme == RGB)
     {
@@ -30,9 +51,35 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adap
     return result;
 }
 
+int adapter_set_source_originator_from_config(struct adapter *adapter, struct source_config *first, struct source_config *second, struct source_config *third)
+{
+    if(adapter->aggregator != NULL)
+    {
+        source_aggregator_free(adapter->aggregator);
+    }
+
+    adapter->aggregator = make_source_aggregator_from_config(first, second, third);
+
+    if(adapter->aggregator == NULL)
+    {
+        return ENOMEM;
+    }
+
+    return EOK;
+
+}
+
 void adapter_process(struct adapter *adapter)
 {
     adapter->is_continue = true;
+
+    if(adapter->aggregator == NULL)
+    {
+        if(adapter_set_source_originator_default(adapter))
+        {
+            return;
+        }
+    }
 
     adapter->base.driver_start(&adapter->base);
 

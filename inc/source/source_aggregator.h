@@ -32,5 +32,6 @@ struct source_config
 
 struct source * source_init_linear(struct source_config *config);
 struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third);
+void source_aggregator_free(struct source_aggregator *aggregator);
 
 #endif /* __SOURCE_AGGREGATOR__ */
