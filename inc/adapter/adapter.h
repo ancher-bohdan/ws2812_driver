@@ -22,7 +22,8 @@ enum supported_color_scheme {
     HSV
 };
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme, struct source_aggregator *aggregator);
+int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme);
+int adapter_set_source_originator_from_config(struct adapter *adapter, struct source_config *first, struct source_config *second, struct source_config *third);
 void adapter_process(struct adapter *adapter);
 
 #endif /*__ADAPTER_INIT__ */

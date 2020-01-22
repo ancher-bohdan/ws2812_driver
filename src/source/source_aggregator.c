@@ -35,3 +35,28 @@ struct source_aggregator *make_source_aggregator_from_config(struct source_confi
 
     return result;
 }
+
+void source_aggregator_free(struct source_aggregator *aggregator)
+{
+    if(aggregator == NULL)
+    {
+        return;
+    }
+
+    if(aggregator->first != NULL)
+    {
+        free(aggregator->first);
+    }
+
+    if(aggregator->second != NULL)
+    {
+        free(aggregator->second);
+    }
+
+    if(aggregator->third != NULL)
+    {
+        free(aggregator->third);
+    }
+
+    free(aggregator);
+}
