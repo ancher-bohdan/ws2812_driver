@@ -74,13 +74,12 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
 
     driver->priv = (struct ws2812_driver_private *)malloc(sizeof(struct ws2812_driver_private));
 
-    memset(driver->priv, 0, sizeof(struct ws2812_driver_private));
-
     if(driver->priv == NULL)
     {
-        free(driver);
         return ENOMEM;
     }
+
+    memset(driver->priv, 0, sizeof(struct ws2812_driver_private));
 
     tmp = __alloc_ring_buffer(driver, &(driver->start));
 
@@ -88,7 +87,6 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
     {
         //TODO: need to clean all driver_buffer_node, that have been created.
         free(driver->priv);
-        free(driver);
     }
 
     (*tmp)->next = driver->start;
