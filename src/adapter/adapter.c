@@ -1,6 +1,7 @@
 #include "adapter/adapter.h"
 #include "source/source.h"
 
+
 static struct source_config_function default_config =
 {
     .base.type = SOURCE_TYPE_LINEAR,
@@ -38,6 +39,7 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
     adapter->hw_delay = delay;
+
     adapter->aggregator = NULL;
     
     if(scheme == RGB)
