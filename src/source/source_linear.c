@@ -5,26 +5,38 @@ void source_linear_reset(struct source *s);
 
 struct source * source_init_linear(struct source_config *config)
 {
-    struct source_linear *result = (struct source_linear *) malloc (sizeof(struct source_linear));
+    struct source_linear *result;
+    struct source *s;
+    struct source_config_function *config_functional = (struct source_config_function *)config;
+    
+    if(config->type != SOURCE_TYPE_LINEAR)
+    {
+        return NULL;
+    }
+    
+    result = (struct source_linear *) malloc (sizeof(struct source_linear));
     
     if(result == NULL)
     {
         return NULL;
     }
 
-    result->base.magic = SOURCE_MAGIC_LINEAR;
+    s = (struct source *)result;
+
+    s->magic = SOURCE_MAGIC_LINEAR;
     
-    result->base.get_value = get_value_linear;
-    result->base.reset_sequence = source_linear_reset;
+    s->get_value = get_value_linear;
+    s->reset_sequence = source_linear_reset;
     
-    result->base.step = config->change_step;
+    result->step_for_b = config_functional->change_step_b;
+    result->step_for_k = config_functional->change_step_k;
 
     result->is_converge = 1;
     result->x_n = 0;
-    result->k = config->k;
-    result->b = config->b;
-    result->y_max = config->y_max;
-    result->y_max_initial = config->y_max;
+    result->k = config_functional->k;
+    result->b = config_functional->b;
+    result->y_max = config_functional->y_max;
+    result->y_max_initial = config_functional->y_max;
 
     return (struct source *)result;
 }
@@ -100,8 +112,11 @@ void source_linear_reset(struct source *s)
     linear->is_converge = 1;
     linear->y_max = linear->y_max_initial;
 
-    linear->b += s->step;
+    linear->b += linear->step_for_b;
     linear->b %= (linear->y_max_initial << 1);
+
+    linear->k += linear->step_for_k;
+    linear->k %= linear->y_max_initial;
 
     if(linear->b > linear->y_max_initial)
     {
