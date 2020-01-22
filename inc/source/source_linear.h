@@ -11,6 +11,7 @@ struct source_linear
     
     uint16_t b;
     uint16_t y_max;
+    uint16_t y_max_initial;
     int16_t x_n;
     uint8_t is_converge;
     uint8_t k;

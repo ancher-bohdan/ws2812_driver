@@ -16,12 +16,15 @@ struct source * source_init_linear(struct source_config *config)
     
     result->base.get_value = get_value_linear;
     result->base.reset_sequence = source_linear_reset;
+    
+    result->base.step = config->change_step;
 
     result->is_converge = 1;
-    result->x_n = 1;
+    result->x_n = 0;
     result->k = config->k;
     result->b = config->b;
     result->y_max = config->y_max;
+    result->y_max_initial = config->y_max;
 
     return (struct source *)result;
 }
@@ -41,36 +44,42 @@ uint16_t get_value_linear(struct source *source)
 
     if(linear->is_converge)
     {
-converge:
         result = linear->k * linear->x_n + linear->b;
+        if(result > linear->y_max)
+        {
+            linear->y_max = linear->k * (linear->x_n - 1 ) + linear->b;
+            linear->is_converge = 0;
+            linear->x_n = 1;
+            goto diverge;
+        }
+
+        linear->x_n++;
+
         if(result == linear->y_max)
         {
             linear->is_converge = 0;
-        }
-        else if(result > linear->y_max)
-        {
-            linear->is_converge = 0;
-            goto diverge;
+            linear->x_n = 1;
         }
         
-        linear->x_n++;
         return (uint16_t)result;
     }
     else
     {
 diverge:
-        result = (-1) * linear->k * linear->x_n - linear->b + (linear->y_max << 1 );
-        if(result == 1)
+        result = (-1) * linear->k * linear->x_n + linear->y_max;
+        linear->x_n++;
+        if(result == 0)
         {
             linear->is_converge = 1;
+            linear->x_n = (-1) * (linear->b / linear->k);
+            linear->x_n++;
         }
         else if(result < 1)
         {
             linear->is_converge = 1;
             linear->x_n = (-1) * (linear->b / linear->k);
-            goto converge;
+            return 0;
         }
-        linear->x_n++;
         
         return (uint16_t)result;
     }
@@ -87,6 +96,21 @@ void source_linear_reset(struct source *s)
 
     linear = (struct source_linear *)s;
 
-    linear->x_n = 1;
+    linear->x_n = 0;
     linear->is_converge = 1;
+    linear->y_max = linear->y_max_initial;
+
+    linear->b += s->step;
+    linear->b %= (linear->y_max_initial << 1);
+
+    if(linear->b > linear->y_max_initial)
+    {
+        do
+        {
+            linear->y_max = linear->k * (--(linear->x_n)) + linear->b;
+        } while (linear->y_max > linear->y_max_initial);
+        
+        linear->x_n *= (-1);
+        linear->is_converge = 0;
+    }
 }

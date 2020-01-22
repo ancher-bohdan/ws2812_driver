@@ -1,20 +1,5 @@
 #include "adapter/adapter.h"
 
-uint16_t first_stub()
-{
-    return 255;
-}
-
-uint8_t second_stub()
-{
-    return 0;
-}
-
-uint8_t third_stub()
-{
-    return 0;
-}
-
 int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme, struct source_aggregator *aggregator)
 {
     int result = 0;
@@ -88,6 +73,6 @@ void adapter_process(struct adapter *adapter)
         adapter->base.write = adapter->base.start;
         adapter->base.read = adapter->base.start;
 
-        adapter->base.fn_table->hw_delay(500);
+        adapter->base.fn_table->hw_delay(5);
     }
 }

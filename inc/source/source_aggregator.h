@@ -7,6 +7,8 @@
 struct source
 {
     uint32_t magic;
+
+    uint16_t step;
     
     uint16_t (*get_value)(struct source *s);
     void (*reset_sequence)(struct source *s);
@@ -21,12 +23,11 @@ struct source_aggregator
 
 struct source_config
 {
-    uint8_t k;
+    uint16_t change_step;
     uint16_t b;
     uint16_t y_min;
     uint16_t y_max;
-    uint8_t x_step;
-
+    uint8_t k;
 };
 
 struct source * source_init_linear(struct source_config *config);
