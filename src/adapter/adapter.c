@@ -21,14 +21,13 @@ static int adapter_set_source_originator_default(struct adapter *adapter)
     return EOK;
 }
 
-int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adapter, enum supported_color_scheme scheme)
+struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme)
 {
-    int result = 0;
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
 
     if(adapter == NULL)
     {
-        return ENOMEM;
+        return NULL;
     }
 
     adapter->is_continue = false;
@@ -44,11 +43,13 @@ int init_adapter(struct ws2812_operation_fn_table *fn, struct adapter **out_adap
         adapter->convert_to_dma = __hsv2dma;
     }
     
-    result = ws2812_driver_init(fn, &adapter->base);
-    
-    *out_adapter = adapter;
+    if(ws2812_driver_init(fn, &adapter->base))
+    {
+        free(adapter);
+        return NULL;
+    }
 
-    return result;
+    return adapter;
 }
 
 int adapter_set_source_originator_from_config(struct adapter *adapter, struct source_config *first, struct source_config *second, struct source_config *third)
