@@ -26,7 +26,7 @@ static int adapter_set_source_originator_default(struct adapter *adapter)
     return EOK;
 }
 
-struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme)
+struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t delay)
 {
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
 
@@ -37,6 +37,7 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
 
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
+    adapter->hw_delay = delay;
     adapter->aggregator = NULL;
     
     if(scheme == RGB)
@@ -127,6 +128,6 @@ void adapter_process(struct adapter *adapter)
 
         driver->write = driver->read = driver->start;
 
-        driver->fn_table->hw_delay(5);
+        driver->fn_table->hw_delay(adapter->hw_delay);
     }
 }
