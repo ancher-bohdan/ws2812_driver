@@ -1,17 +1,22 @@
 #include "adapter/adapter.h"
+#include "source/source.h"
 
-static struct source_config default_config =
+static struct source_config_function default_config =
 {
+    .base.type = SOURCE_TYPE_LINEAR,
     .k = 0,
     .b = 100,
-    .change_step = 0,
+    .change_step_b = 0,
+    .change_step_k = 0,
     .y_max = 255,
     .y_min = 0,
 };
 
 static int adapter_set_source_originator_default(struct adapter *adapter)
 {
-    adapter->aggregator = make_source_aggregator_from_config(&default_config, &default_config, &default_config);
+    struct source_config *c = (struct source_config *)&default_config;
+
+    adapter->aggregator = make_source_aggregator_from_config(c, c, c);
 
     if(adapter->aggregator == NULL)
     {

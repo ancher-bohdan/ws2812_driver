@@ -1,4 +1,17 @@
 #include "source/source_aggregator.h"
+#include "source/source_linear.h"
+
+static struct source *make_source_from_config(struct source_config *config)
+{
+    switch (config->type)
+    {
+    case SOURCE_TYPE_LINEAR:
+        return source_init_linear(config);
+        break;
+    default:
+        return NULL;
+    }
+}
 
 struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third)
 {
@@ -6,34 +19,37 @@ struct source_aggregator *make_source_aggregator_from_config(struct source_confi
     
     if(result == NULL)
     {
-        return NULL;
+        goto err_no_del;
     }
 
-    result->first = source_init_linear(first);
+    result->first = make_source_from_config(first);
     if(result->first == NULL)
     {
-        free(result);
-        return NULL;
+        goto err_aggr_del;
     }
 
-    result->second = source_init_linear(second);
+    result->second = make_source_from_config(second);
     if(result->second == NULL)
     {
-        free(result->first);
-        free(result);
-        return NULL;
+        goto err_first_del;
     }
 
-    result->third = source_init_linear(third);
+    result->third = make_source_from_config(third);
     if(result->third == NULL)
     {
-        free(result->first);
-        free(result->second);
-        free(result);
-        return NULL;
+        goto err_second_del;
     }
 
     return result;
+
+err_second_del:
+    free(result->second);
+err_first_del:
+    free(result->first);
+err_aggr_del:
+    free(result);
+err_no_del:
+    return NULL;
 }
 
 void source_aggregator_free(struct source_aggregator *aggregator)
