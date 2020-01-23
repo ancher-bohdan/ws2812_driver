@@ -72,6 +72,8 @@ int adapter_set_source_originator_from_config(struct adapter *adapter, struct so
 
 void adapter_process(struct adapter *adapter)
 {
+    struct ws2812_driver *driver = (struct ws2812_driver *)adapter;
+
     adapter->is_continue = true;
 
     if(adapter->aggregator == NULL)
@@ -82,31 +84,31 @@ void adapter_process(struct adapter *adapter)
         }
     }
 
-    adapter->base.driver_start(&adapter->base);
+    driver->driver_start(driver);
 
     while(adapter->is_continue)
     {
-        adapter->base.dma_swallow_workaround(&adapter->base);
+        driver->dma_swallow_workaround(driver);
 
-        while(adapter->flash_led_count < adapter->base.led_count)
+        while(adapter->flash_led_count < driver->led_count)
         {
-            if(adapter->base.read != adapter->base.write
-            || adapter->base.write->state == DRBUF_STATE_FREE)
+            if(driver->read != driver->write
+            || driver->write->state == DRBUF_STATE_FREE)
             {
                 uint8_t i = 0;
                 for(i = 0; i < adapter->base.buffer_size; i++)
                 {
-                    adapter->base.write->color[i].first = adapter->aggregator->first->get_value(adapter->aggregator->first);
-                    adapter->base.write->color[i].second = adapter->aggregator->second->get_value(adapter->aggregator->second);
-                    adapter->base.write->color[i].third = adapter->aggregator->third->get_value(adapter->aggregator->third);
+                    driver->write->color[i].first = adapter->aggregator->first->get_value(adapter->aggregator->first);
+                    driver->write->color[i].second = adapter->aggregator->second->get_value(adapter->aggregator->second);
+                    driver->write->color[i].third = adapter->aggregator->third->get_value(adapter->aggregator->third);
 
-                    adapter->convert_to_dma(adapter->base.write, i);
+                    adapter->convert_to_dma(driver->write, i);
                     adapter->flash_led_count++;
                 }
 
                 //TODO: Possible race condition. Need lock
-                adapter->base.write->state = DRBUF_STATE_BUSY;
-                adapter->base.write = adapter->base.write->next;
+                driver->write->state = DRBUF_STATE_BUSY;
+                driver->write = driver->write->next;
             }
         }
 
@@ -118,9 +120,8 @@ void adapter_process(struct adapter *adapter)
 
         while(adapter->base.state != DR_STATE_SUSPEND);
 
-        adapter->base.write = adapter->base.start;
-        adapter->base.read = adapter->base.start;
+        driver->write = driver->read = driver->start;
 
-        adapter->base.fn_table->hw_delay(5);
+        driver->fn_table->hw_delay(5);
     }
 }
