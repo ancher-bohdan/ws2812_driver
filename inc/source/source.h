@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define SOURCE_MAGIC_BASE   0xDEADBEEF
+
+#define SOURCE_MAGIC_LINEAR SOURCE_MAGIC_BASE
+
 struct source
 {
     uint32_t magic;

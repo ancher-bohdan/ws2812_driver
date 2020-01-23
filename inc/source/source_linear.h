@@ -4,8 +4,6 @@
 #include "source/source_aggregator.h"
 #include "source/source.h"
 
-#define SOURCE_MAGIC_LINEAR     0xDEADBEEF
-
 struct source_linear
 {
     struct source base;
