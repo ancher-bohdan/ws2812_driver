@@ -1,5 +1,5 @@
-#include "source/source_aggregator.h"
 #include "source/source_linear.h"
+#include "source/source_trigonometric.h"
 
 static struct source *make_source_from_config(struct source_config *config)
 {
@@ -8,6 +8,8 @@ static struct source *make_source_from_config(struct source_config *config)
     case SOURCE_TYPE_LINEAR:
         return source_init_linear(config);
         break;
+    case SOURCE_TYPE_TRIGONOMETRIC:
+        return source_init_trigonometric(config);
     default:
         return NULL;
     }

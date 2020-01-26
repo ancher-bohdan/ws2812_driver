@@ -8,7 +8,8 @@ struct source;
 
 enum source_type 
 {
-    SOURCE_TYPE_LINEAR
+    SOURCE_TYPE_LINEAR,
+    SOURCE_TYPE_TRIGONOMETRIC
 };
 
 struct source_aggregator
@@ -33,6 +34,13 @@ struct source_config_function
     uint16_t b;
     uint16_t y_min;
     uint16_t y_max;
+};
+
+struct source_config_trigonometric
+{
+    struct source_config_function base;
+
+    float (*hw_sinus)(float radians);
 };
 
 struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third);
