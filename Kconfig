@@ -1,0 +1,96 @@
+###############################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later
+###############################################################################
+
+config LED_NUMBERS
+  int "Number of led in led strip"
+  default 40
+  range 0 10000
+  help
+    Define how many led's will be driven by this application
+
+choice BUFFER_COUNT
+  prompt "Buffer count"
+  help
+    Defines how many buffer node`s will be in ring buffer. It is possible to set it
+    as 2(BUFFER_COUNT_2) or 4(BUFFER_COUNT_4).
+    
+    If you select 4, DMA will be configured in double buffer mode. It will increase driver robustness
+    but also increase memory consumption
+    
+    If you select 2, DMA will be configured in SINGLE buffer mode.
+    
+    If unsure, select 2. For all mathematic source it will be enough 
+
+  config BUFFER_COUNT_2
+    bool "two buffer node in ring"
+    help
+      If you select 2, DMA will be configured in SINGLE buffer mode.
+
+  config BUFFER_COUNT_4
+    bool "four buffer count in ring buffer"
+    help
+      If you select 4, DMA will be configured in double buffer mode. It will increase driver robustness
+      but also increase memory consumption
+    
+endchoice
+
+config BUFFER_SIZE
+  int "Size of one buffer node in ring buffer"
+  default 4
+  range 1 LED_NUMBERS
+  help
+    Defines how many LEDs will be serves by one buffer node. By default it set to 
+    4 LEDs for one buffer node. In can`t be greater than LED_NUMBERS value, because it is useless.
+
+config LED_CODE_ONE
+  int "Code for WS2812 for high logic value (bit 1)"
+  default 65
+  help
+    Defines value, that will be passed to timer for generation of square impulse, that will be 
+    decoded by WS2812 as logical 1. This value mostly depends from timer configuration and should
+    be high enough to generate impulse with width 0.35us (+-150ns) and period (1.225 us)
+
+config LED_CODE_ZERO
+  int "Code for WS2812 for low logic value (bit 0)"
+  default 26
+  help
+    Defines value, that will be passed to timer for generation of square impulse, that will be 
+    decoded by WS2812 as logical 0. This value mostly depends from timer configuration and should
+    be high enough to generate impulse with width 0.7us (+-150ns) and period (1.225 us)
+
+choice DMA_TRANSACTION_SIZE
+  prompt "Size of one DMA transaction"
+  help
+    Defines size of one DMA transaction. The choice will depend from size of DMA destination. This
+    value will be different of different platform, and should be acquired from datasheet on your
+    platform
+
+  config DMA_TRANSACTION_32
+    bool "DMA transaction size WORD (32 bit)"
+    help
+      DMA transaction WORD
+
+  config DMA_TRANSACTION_16
+    bool "DMA transaction size HALF WORD (16 bit)"
+    help
+      DMA transaction HALF WORD
+
+  config DMA_TRANSACTION_8
+    bool "DMA transaction size BYTE (8 bit)"
+    help
+      DMA transaction BYTE
+    
+endchoice
+
+config NUMBERS_PER_LED
+  int "Numbers per one LED"
+  default 24
+  help
+    Define how many numbers require one LED in led strip. For most cases this value are 24 - 
+    8 numbers for 3 color component (Red, Green, Blue). This value should be change only if
+    you want to drive some exotic type of smart led strip with absolutely insane way of color
+    representation. For WS2812 default value (24) is ok.
+
+
+###############################################################################
