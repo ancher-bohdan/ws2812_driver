@@ -165,10 +165,12 @@ void ws2812_driver_stop(struct ws2812_driver *driver)
 void ws2812_driver_dma_workaround(struct ws2812_driver *driver)
 {
     memset(driver->write->buffer, 0, driver->buffer_size * WORDS_PER_LED
-#ifdef DMA_TRANSACTION_32
+#ifdef CONFIG_DMA_TRANSACTION_32
         * 4
-#elif DMA_TRANSACTION_16
+#elif CONFIG_DMA_TRANSACTION_16
         * 2
+#elif CONFIG_DMA_TRANSACTION_8
+
 #else
     #warning "DMA_TRANSACTION_32 or DMA_TRANSACTION_16 are missing. Assuming DMA data with - byte (8 bit)"
 #endif
