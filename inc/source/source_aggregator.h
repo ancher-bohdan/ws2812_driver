@@ -9,7 +9,8 @@ struct source;
 enum source_type 
 {
     SOURCE_TYPE_LINEAR,
-    SOURCE_TYPE_TRIGONOMETRIC
+    SOURCE_TYPE_TRIGONOMETRIC,
+    SOURCE_TYPE_MUSIC
 };
 
 struct source_aggregator

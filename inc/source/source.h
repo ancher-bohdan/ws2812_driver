@@ -8,6 +8,7 @@
 
 #define SOURCE_MAGIC_LINEAR         (SOURCE_MAGIC_BASE)
 #define SOURCE_MAGIC_TRIGONOMETRIC  ((SOURCE_MAGIC_BASE) + 1)
+#define SOURCE_MAGIC_MUSIC          ((SOURCE_MAGIC_BASE) + 2)
 
 struct source
 {
