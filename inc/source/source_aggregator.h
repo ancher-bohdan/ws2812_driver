@@ -44,6 +44,13 @@ struct source_config_trigonometric
     float (*hw_sinus)(float radians);
 };
 
+struct source_config_music
+{
+    struct source_config base;
+
+    int (*hw_convert)(void *src, void *dst);
+};
+
 struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third);
 void source_aggregator_free(struct source_aggregator *aggregator);
 
