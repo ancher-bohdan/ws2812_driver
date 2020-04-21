@@ -51,11 +51,14 @@ struct source_config_music
     uint8_t is_fft_conversion_async;
     uint8_t is_sampling_async;
 
-    void (*sampling_fnc)(uint16_t *dst, uint16_t sampling_size);
-    void (*fft_convert_fnc)(uint16_t *buf, uint16_t fft_size);
+    void (*sampling_fnc)(int16_t *dst, uint16_t sampling_size);
+    void (*fft_convert_fnc)(int16_t *buf, uint16_t fft_size);
+    void (*normalise_fnc)(int16_t *buf, uint16_t size);
 };
 
 struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third);
 void source_aggregator_free(struct source_aggregator *aggregator);
+
+extern void sampling_async_finish(struct source *handler);
 
 #endif /* __SOURCE_AGGREGATOR__ */
