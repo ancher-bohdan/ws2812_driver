@@ -43,6 +43,7 @@ static struct driver_buffer_node **__alloc_ring_buffer(struct ws2812_driver *dri
         recursion_count++;
         return __alloc_ring_buffer(driver, &((*prev)->next));
     } else {
+        recursion_count = 0;
         return prev;
     }
 }

@@ -52,7 +52,7 @@ struct ws2812_operation_fn_table {
     void (*hw_stop_dma) ();
     void (*hw_start_timer) ();
     void (*hw_stop_timer) ();
-    void (*hw_delay) (uint32_t delay);
+    bool (*hw_delay) (uint32_t delay);
 };
 
 struct ws2812_driver {

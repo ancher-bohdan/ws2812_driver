@@ -27,6 +27,19 @@ static int adapter_set_source_originator_default(struct adapter *adapter)
     return EOK;
 }
 
+static bool _is_any_adapter_continue_process(struct adapter **adapters, int ifnum)
+{
+    int i = 0;
+    for(i = 0; i < ifnum; i++)
+    {
+        if(adapters[i]->is_continue)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t delay)
 {
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
@@ -78,58 +91,76 @@ int adapter_set_source_originator_from_config(struct adapter *adapter, struct so
 
 }
 
-void adapter_process(struct adapter *adapter)
+void adapter_start(struct adapter *adapter)
 {
-    struct ws2812_driver *driver = (struct ws2812_driver *)adapter;
-
     adapter->is_continue = true;
+    adapter->base.driver_start(&adapter->base);
+}
 
-    if(adapter->aggregator == NULL)
+void adapter_process(struct adapter **adapter, int ifnum)
+{
+    int i = 0;
+
+    for(i = 0; i < ifnum; i++)
     {
-        if(adapter_set_source_originator_default(adapter))
+        if(adapter[i]->aggregator == NULL)
         {
-            return;
-        }
-    }
-
-    driver->driver_start(driver);
-
-    while(adapter->is_continue)
-    {
-        driver->dma_swallow_workaround(driver);
-
-        while(adapter->flash_led_count < driver->led_count)
-        {
-            if(driver->read != driver->write
-            || driver->write->state == DRBUF_STATE_FREE)
+            if(adapter_set_source_originator_default(adapter[i]))
             {
-                uint8_t i = 0;
-                for(i = 0; i < adapter->base.buffer_size; i++)
-                {
-                    driver->write->color[i].first = adapter->aggregator->first->get_value(adapter->aggregator->first);
-                    driver->write->color[i].second = adapter->aggregator->second->get_value(adapter->aggregator->second);
-                    driver->write->color[i].third = adapter->aggregator->third->get_value(adapter->aggregator->third);
-
-                    adapter->convert_to_dma(driver->write, i);
-                    adapter->flash_led_count++;
-                }
-
-                //TODO: Possible race condition. Need lock
-                driver->write->state = DRBUF_STATE_BUSY;
-                driver->write = driver->write->next;
+                return;
             }
         }
+        adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
+    }
 
-        adapter->flash_led_count = 0;
+    while(_is_any_adapter_continue_process(adapter, ifnum))
+    {
+        for(i = 0; i < ifnum; i++)
+        {
+            if(adapter[i]->is_continue)
+            {                
+                if(adapter[i]->flash_led_count < adapter[i]->base.led_count)
+                {
+                    if(adapter[i]->base.read != adapter[i]->base.write 
+                    || adapter[i]->base.write->state == DRBUF_STATE_FREE)
+                    {
+                        uint8_t j = 0;
+                        for(j = 0; j < adapter[i]->base.buffer_size; j++)
+                        {
+                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator->first->get_value(adapter[i]->aggregator->first);
+                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator->second->get_value(adapter[i]->aggregator->second);
+                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator->third->get_value(adapter[i]->aggregator->third);
 
-        adapter->aggregator->first->reset_sequence(adapter->aggregator->first);
-        adapter->aggregator->second->reset_sequence(adapter->aggregator->second);
-        adapter->aggregator->third->reset_sequence(adapter->aggregator->third);
+                            adapter[i]->convert_to_dma(adapter[i]->base.write, j);
+                            adapter[i]->flash_led_count++;
+                        }
 
-        while(adapter->base.state != DR_STATE_SUSPEND);
+                        adapter[i]->base.write->state = DRBUF_STATE_BUSY;
+                        adapter[i]->base.write = adapter[i]->base.write->next;
+                    }
+                }
+                else // data for all leds in current ledstrip is ready. Perform finish routine
+                {
+                    if(adapter[i]->base.state != DR_STATE_SUSPEND)
+                    {
+                        continue;
+                    }
 
-        driver->write = driver->read = driver->start;
+                    if(!adapter[i]->base.fn_table->hw_delay(adapter[i]->hw_delay))
+                    {
+                        continue;
+                    }
 
-        driver->fn_table->hw_delay(adapter->hw_delay);
+                    adapter[i]->aggregator->first->reset_sequence(adapter[i]->aggregator->first);
+                    adapter[i]->aggregator->second->reset_sequence(adapter[i]->aggregator->second);
+                    adapter[i]->aggregator->third->reset_sequence(adapter[i]->aggregator->third);
+
+                    adapter[i]->base.write = adapter[i]->base.read = adapter[i]->base.start;
+
+                    adapter[i]->flash_led_count = 0;
+                    adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
+                }
+            }
+        }
     }
 }
