@@ -12,6 +12,7 @@ void ws2812_driver_start(struct ws2812_driver *driver);
 void ws2812_driver_stop(struct ws2812_driver *driver);
 void ws2812_driver_dma_workaround(struct ws2812_driver *driver);
 
+static uint32_t static_id = 0;
 
 static bool check_all_buffer_node_state(struct ws2812_driver *driver, enum driver_buffer_state expected_state)
 {
@@ -57,6 +58,7 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, uint32_t ledcount, 
         return EPARAM;
     }
 
+    driver->id = static_id++;
     driver->state = DR_STATE_IDLE;
     driver->buffer_size = BUFFER_SIZE;
     driver->buffer_count = BUFFER_COUNT;
@@ -127,38 +129,38 @@ void tim_interrupt_routine(struct ws2812_driver *driver)
 
 void ws2812_driver_suspend(struct ws2812_driver *driver)
 {
-    driver->fn_table->hw_stop_dma();
+    driver->fn_table->hw_stop_dma(driver->id);
 
     driver->state = DR_STATE_SUSPEND;
 
-    driver->fn_table->hw_start_timer();
+    driver->fn_table->hw_start_timer(driver->id);
 }
 
 void ws2812_driver_resume(struct ws2812_driver *driver)
 {
-    driver->fn_table->hw_stop_timer();
+    driver->fn_table->hw_stop_timer(driver->id);
 
     driver->state = DR_STATE_RUNNING;
 
-    driver->fn_table->hw_start_dma(driver->read->buffer, driver->buffer_count * driver->buffer_size * WORDS_PER_LED);
+    driver->fn_table->hw_start_dma(driver->id, driver->read->buffer, driver->buffer_count * driver->buffer_size * WORDS_PER_LED);
 }
 
 void ws2812_driver_start(struct ws2812_driver *driver)
 {
     driver->state = DR_STATE_SUSPEND;
     
-    driver->fn_table->hw_start_timer();
+    driver->fn_table->hw_start_timer(driver->id);
 }
 
 void ws2812_driver_stop(struct ws2812_driver *driver)
 {
     if(driver->state == DR_STATE_RUNNING)
     {
-        driver->fn_table->hw_stop_dma();
+        driver->fn_table->hw_stop_dma(driver->id);
     }
     else if(driver->state == DR_STATE_SUSPEND)
     {
-        driver->fn_table->hw_stop_timer();
+        driver->fn_table->hw_stop_timer(driver->id);
     }
     driver->state = DR_STATE_IDLE;
 }

@@ -97,6 +97,11 @@ void adapter_start(struct adapter *adapter)
     adapter->base.driver_start(&adapter->base);
 }
 
+void adapter_set_driver_id(struct adapter *adapter, uint32_t id)
+{
+    adapter->base.id = id;
+}
+
 void adapter_process(struct adapter **adapter, int ifnum)
 {
     int i = 0;
@@ -146,7 +151,7 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         continue;
                     }
 
-                    if(!adapter[i]->base.fn_table->hw_delay(adapter[i]->hw_delay))
+                    if(!adapter[i]->base.fn_table->hw_delay(adapter[i]->base.id, adapter[i]->hw_delay))
                     {
                         continue;
                     }

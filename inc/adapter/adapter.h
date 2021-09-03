@@ -25,6 +25,7 @@ enum supported_color_scheme {
 
 struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t led_count, uint32_t delay);
 int adapter_set_source_originator_from_config(struct adapter *adapter, struct source_config *first, struct source_config *second, struct source_config *third);
+void adapter_set_driver_id(struct adapter *adapter, uint32_t id);
 void adapter_start(struct adapter *adapter);
 void adapter_process(struct adapter **adapters, int ifnum);
 

@@ -48,15 +48,15 @@ struct driver_buffer_node {
 };
 
 struct ws2812_operation_fn_table {
-    void (*hw_start_dma) (void *ptr, uint16_t size);
-    void (*hw_stop_dma) ();
-    void (*hw_start_timer) ();
-    void (*hw_stop_timer) ();
-    bool (*hw_delay) (uint32_t delay);
+    void (*hw_start_dma) (uint32_t driver_id, void *ptr, uint16_t size);
+    void (*hw_stop_dma) (uint32_t driver_id);
+    void (*hw_start_timer) (uint32_t driver_id);
+    void (*hw_stop_timer) (uint32_t driver_id);
+    bool (*hw_delay) (uint32_t driver_id, uint32_t delay);
 };
 
 struct ws2812_driver {
-    
+    uint32_t id;
     struct driver_buffer_node *read;
     struct driver_buffer_node *write;
     struct driver_buffer_node *start;
