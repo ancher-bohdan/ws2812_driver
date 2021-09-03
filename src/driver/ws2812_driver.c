@@ -48,7 +48,7 @@ static struct driver_buffer_node **__alloc_ring_buffer(struct ws2812_driver *dri
     }
 }
 
-int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_driver *driver)
+int ws2812_driver_init(struct ws2812_operation_fn_table *fn, uint32_t ledcount, struct ws2812_driver *driver)
 {
     struct driver_buffer_node **tmp = NULL;
 
@@ -60,7 +60,7 @@ int ws2812_driver_init(struct ws2812_operation_fn_table *fn, struct ws2812_drive
     driver->state = DR_STATE_IDLE;
     driver->buffer_size = BUFFER_SIZE;
     driver->buffer_count = BUFFER_COUNT;
-    driver->led_count = LED_NUMBERS;
+    driver->led_count = ledcount;
     driver->fn_table = fn;
 
     driver->driver_start = ws2812_driver_start;

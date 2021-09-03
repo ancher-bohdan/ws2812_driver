@@ -40,7 +40,7 @@ static bool _is_any_adapter_continue_process(struct adapter **adapters, int ifnu
     return false;
 }
 
-struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t delay)
+struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t led_count, uint32_t delay)
 {
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
 
@@ -64,7 +64,7 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
         adapter->convert_to_dma = __hsv2dma;
     }
     
-    if(ws2812_driver_init(fn, &adapter->base))
+    if(ws2812_driver_init(fn, led_count, &adapter->base))
     {
         free(adapter);
         return NULL;
