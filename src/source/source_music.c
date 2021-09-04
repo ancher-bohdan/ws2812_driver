@@ -1,5 +1,4 @@
 #include "source/source_music.h"
-#include ".config.h"
 
 #include <string.h>
 
@@ -12,6 +11,9 @@
 #define SET_SAMPLING_ASYNC_FLAG(flags)  ((flags) | (MUSIC_FLAG_SAMPLING_ASYNC))
 
 #define wait_util(condition)            while(condition)
+
+//WARN!!!! - need to be changed to make in change in runtime
+#define CONFIG_LED_NUMBERS (118)
 
 static uint16_t find_correct_fft_size(uint16_t led_count)
 {

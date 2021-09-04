@@ -2,13 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 ###############################################################################
 
-config LED_NUMBERS
-  int "Number of led in led strip"
-  default 40
-  range 0 10000
-  help
-    Define how many led's will be driven by this application
-
 choice BUFFER_COUNT
   prompt "Buffer count"
   help
@@ -38,10 +31,10 @@ endchoice
 config BUFFER_SIZE
   int "Size of one buffer node in ring buffer"
   default 4
-  range 1 LED_NUMBERS
   help
     Defines how many LEDs will be serves by one buffer node. By default it set to 
-    4 LEDs for one buffer node. In can`t be greater than LED_NUMBERS value, because it is useless.
+    4 LEDs for one buffer node. In can`t be greater than number of leds in any particular ledstip,
+    because it is useless.
 
 config LED_CODE_ONE
   int "Code for WS2812 for high logic value (bit 1)"

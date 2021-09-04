@@ -29,19 +29,4 @@
 /* Value, that represent bit 0 in __dma_buffer struct */
 #define LED_CODE_ZERO   CONFIG_LED_CODE_ZERO
 
-/* ---------------------------------
- * Macros for parameters validation
- * !!!! DO NOT MODIFY !!!!
- * -------------------------------- */
-
-#define NUMBER_OF_BUFFERS   (LED_NUMBERS / BUFFER_SIZE)
-
-#if (NUMBER_OF_BUFFERS * BUFFER_SIZE < LED_NUMBERS)
-#warning "Not all leds in led strip will be use. Modify config parameters, pls"
-#endif
-
-#if (NUMBER_OF_BUFFERS < BUFFER_COUNT)
-#error "Redundant memory allocation. Correct config parameters, pls"
-#endif
-
 #endif
