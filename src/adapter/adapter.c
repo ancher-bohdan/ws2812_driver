@@ -53,7 +53,7 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
     adapter->flash_led_count = 0;
     adapter->hw_delay = delay;
 
-    adapter->aggregator = NULL;
+    adapter_set_source_originator_default(adapter);
     
     if(scheme == RGB)
     {
@@ -95,6 +95,7 @@ void adapter_start(struct adapter *adapter)
 {
     adapter->is_continue = true;
     adapter->base.driver_start(&adapter->base);
+    adapter->base.dma_swallow_workaround(&(adapter->base));
 }
 
 void adapter_set_driver_id(struct adapter *adapter, uint32_t id)
@@ -105,18 +106,6 @@ void adapter_set_driver_id(struct adapter *adapter, uint32_t id)
 void adapter_process(struct adapter **adapter, int ifnum)
 {
     int i = 0;
-
-    for(i = 0; i < ifnum; i++)
-    {
-        if(adapter[i]->aggregator == NULL)
-        {
-            if(adapter_set_source_originator_default(adapter[i]))
-            {
-                return;
-            }
-        }
-        adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
-    }
 
     while(_is_any_adapter_continue_process(adapter, ifnum))
     {
