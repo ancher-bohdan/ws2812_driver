@@ -4,6 +4,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#define AGGREGATOR_GET_ACTIVE_BANK(aggregator)               ((aggregator).flags & 0x1)
+#define AGGREGATOR_IS_BANK_SWITCHING_NEED(aggregator)       ((aggregator).flags >> 1)
+
+#define AGGREGATOR_SWITCH_ACTIVE_BANK(aggregator)           (aggregator).flags ^= 0x1
+#define AGGREGATOR_SET_BANK_SWITCHING_FLAG(aggregator)      (aggregator).flags |= 0x2
+
+#define AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(aggregator)    (aggregator).flags &= ~(0x2)
+
 struct source;
 
 enum source_type 
@@ -15,9 +23,10 @@ enum source_type
 
 struct source_aggregator
 {
-    struct source *first;
-    struct source *second;
-    struct source *third;
+    uint32_t flags;
+    struct source *first[2];
+    struct source *second[2];
+    struct source *third[2];
 };
 
 struct source_config
@@ -56,7 +65,7 @@ struct source_config_music
     void (*normalise_fnc)(int16_t *buf, uint16_t size);
 };
 
-struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third);
+int make_source_aggregator_from_config(struct source_aggregator *aggregator, struct source_config *first, struct source_config *second, struct source_config *third);
 void source_aggregator_free(struct source_aggregator *aggregator);
 
 extern void sampling_async_finish(struct source *handler);

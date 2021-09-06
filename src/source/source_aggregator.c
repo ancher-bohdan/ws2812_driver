@@ -17,66 +17,63 @@ static struct source *make_source_from_config(struct source_config *config)
     }
 }
 
-struct source_aggregator *make_source_aggregator_from_config(struct source_config *first, struct source_config *second, struct source_config *third)
+int make_source_aggregator_from_config(struct source_aggregator *aggregator, struct source_config *first, struct source_config *second, struct source_config *third)
 {
-    struct source_aggregator *result = (struct source_aggregator *) malloc(sizeof(struct source_aggregator));
-    
-    if(result == NULL)
+    uint8_t inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator);
+
+    source_aggregator_free(aggregator);
+
+    aggregator->first[inactive_bank] = make_source_from_config(first);
+    if(aggregator->first[inactive_bank] == NULL)
     {
         goto err_no_del;
     }
 
-    result->first = make_source_from_config(first);
-    if(result->first == NULL)
-    {
-        goto err_aggr_del;
-    }
-
-    result->second = make_source_from_config(second);
-    if(result->second == NULL)
+    aggregator->second[inactive_bank] = make_source_from_config(second);
+    if(aggregator->second[inactive_bank] == NULL)
     {
         goto err_first_del;
     }
 
-    result->third = make_source_from_config(third);
-    if(result->third == NULL)
+    aggregator->third[inactive_bank] = make_source_from_config(third);
+    if(aggregator->third[inactive_bank] == NULL)
     {
         goto err_second_del;
     }
 
-    return result;
+    AGGREGATOR_SET_BANK_SWITCHING_FLAG(*aggregator);
+
+    return 0;
 
 err_second_del:
-    free(result->second);
+    free(aggregator->second[inactive_bank]);
 err_first_del:
-    free(result->first);
-err_aggr_del:
-    free(result);
+    free(aggregator->first[inactive_bank]);
 err_no_del:
-    return NULL;
+    return -1;
 }
 
 void source_aggregator_free(struct source_aggregator *aggregator)
 {
+    uint8_t inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator);
+    
     if(aggregator == NULL)
     {
         return;
     }
 
-    if(aggregator->first != NULL)
+    if(aggregator->first[inactive_bank] != NULL)
     {
-        free(aggregator->first);
+        free(aggregator->first[inactive_bank]);
     }
 
-    if(aggregator->second != NULL)
+    if(aggregator->second[inactive_bank] != NULL)
     {
-        free(aggregator->second);
+        free(aggregator->second[inactive_bank]);
     }
 
-    if(aggregator->third != NULL)
+    if(aggregator->third[inactive_bank] != NULL)
     {
-        free(aggregator->third);
+        free(aggregator->third[inactive_bank]);
     }
-
-    free(aggregator);
 }

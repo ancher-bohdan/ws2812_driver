@@ -13,18 +13,19 @@ static struct source_config_function default_config =
     .y_min = 0,
 };
 
-static int adapter_set_source_originator_default(struct adapter *adapter)
+static int adapter_set_source_originator_default(struct adapter *adapter, bool isInInit)
 {
     struct source_config *c = (struct source_config *)&default_config;
 
-    adapter->aggregator = make_source_aggregator_from_config(c, c, c);
+    int res = make_source_aggregator_from_config(&(adapter->aggregator), c, c, c);
 
-    if(adapter->aggregator == NULL)
+    if(res == EOK && isInInit)
     {
-        return ENOMEM;
+        //default originator placed on inactive bank. Need to swap banks 
+        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator);
+        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator);
     }
-
-    return EOK;
+    return res;
 }
 
 static bool _is_any_adapter_continue_process(struct adapter **adapters, int ifnum)
@@ -52,8 +53,15 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
     adapter->hw_delay = delay;
-
-    adapter_set_source_originator_default(adapter);
+    
+    adapter->aggregator.flags = 0;
+    adapter->aggregator.first[0] = NULL;
+    adapter->aggregator.second[0] = NULL;
+    adapter->aggregator.third[0] = NULL;
+    adapter->aggregator.first[1] = NULL;
+    adapter->aggregator.second[1] = NULL;
+    adapter->aggregator.third[1] = NULL;
+    adapter_set_source_originator_default(adapter, true);
     
     if(scheme == RGB)
     {
@@ -73,26 +81,15 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
     return adapter;
 }
 
-int adapter_set_source_originator_from_config(struct adapter *adapter, struct source_config *first, struct source_config *second, struct source_config *third)
-{
-    if(adapter->aggregator != NULL)
-    {
-        source_aggregator_free(adapter->aggregator);
-    }
-
-    adapter->aggregator = make_source_aggregator_from_config(first, second, third);
-
-    if(adapter->aggregator == NULL)
-    {
-        return ENOMEM;
-    }
-
-    return EOK;
-
-}
-
 void adapter_start(struct adapter *adapter)
 {
+    //switch originator`s bank if config changed during adapter was stoped
+    if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter->aggregator))
+    {
+        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator);
+        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator);
+    }
+
     adapter->is_continue = true;
     adapter->base.driver_start(&adapter->base);
     adapter->base.dma_swallow_workaround(&(adapter->base));
@@ -112,7 +109,9 @@ void adapter_process(struct adapter **adapter, int ifnum)
         for(i = 0; i < ifnum; i++)
         {
             if(adapter[i]->is_continue)
-            {                
+            {
+                uint8_t active_bank = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator);
+
                 if(adapter[i]->flash_led_count < adapter[i]->base.led_count)
                 {
                     if(adapter[i]->base.read != adapter[i]->base.write 
@@ -121,9 +120,9 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         uint8_t j = 0;
                         for(j = 0; j < adapter[i]->base.buffer_size; j++)
                         {
-                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator->first->get_value(adapter[i]->aggregator->first);
-                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator->second->get_value(adapter[i]->aggregator->second);
-                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator->third->get_value(adapter[i]->aggregator->third);
+                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank]->get_value(adapter[i]->aggregator.first[active_bank]);
+                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank]->get_value(adapter[i]->aggregator.second[active_bank]);
+                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank]->get_value(adapter[i]->aggregator.third[active_bank]);
 
                             adapter[i]->convert_to_dma(adapter[i]->base.write, j);
                             adapter[i]->flash_led_count++;
@@ -145,14 +144,20 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         continue;
                     }
 
-                    adapter[i]->aggregator->first->reset_sequence(adapter[i]->aggregator->first);
-                    adapter[i]->aggregator->second->reset_sequence(adapter[i]->aggregator->second);
-                    adapter[i]->aggregator->third->reset_sequence(adapter[i]->aggregator->third);
+                    adapter[i]->aggregator.first[active_bank]->reset_sequence(adapter[i]->aggregator.first[active_bank]);
+                    adapter[i]->aggregator.second[active_bank]->reset_sequence(adapter[i]->aggregator.second[active_bank]);
+                    adapter[i]->aggregator.third[active_bank]->reset_sequence(adapter[i]->aggregator.third[active_bank]);
 
                     adapter[i]->base.write = adapter[i]->base.read = adapter[i]->base.start;
 
                     adapter[i]->flash_led_count = 0;
                     adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
+                    
+                    if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter[i]->aggregator))
+                    {
+                        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter[i]->aggregator);
+                        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter[i]->aggregator);
+                    }
                 }
             }
         }
