@@ -21,9 +21,14 @@ static int adapter_set_source_originator_default(struct adapter *adapter, bool i
 
     if(res == EOK && isInInit)
     {
-        //default originator placed on inactive bank. Need to swap banks 
-        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator);
-        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator);
+        uint8_t i;
+
+        for(i = 0; i < 3; i++)
+        {
+            //default originator placed on inactive bank. Need to swap banks 
+            AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator, i);
+            AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator, i);
+        }
     }
     return res;
 }
@@ -83,11 +88,16 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
 
 void adapter_start(struct adapter *adapter)
 {
-    //switch originator`s bank if config changed during adapter was stoped
-    if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter->aggregator))
+    uint8_t i;
+
+    for(i = 0; i < 3; i++)
     {
-        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator);
-        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator);
+        //switch originator`s bank if config changed during adapter was stoped
+        if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter->aggregator, i))
+        {
+            AGGREGATOR_SWITCH_ACTIVE_BANK(adapter->aggregator, i);
+            AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter->aggregator, i);
+        }
     }
 
     adapter->is_continue = true;
@@ -110,7 +120,9 @@ void adapter_process(struct adapter **adapter, int ifnum)
         {
             if(adapter[i]->is_continue)
             {
-                uint8_t active_bank = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator);
+                uint8_t active_bank0 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
+                uint8_t active_bank1 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
+                uint8_t active_bank2 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
 
                 if(adapter[i]->flash_led_count < adapter[i]->base.led_count)
                 {
@@ -120,9 +132,9 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         uint8_t j = 0;
                         for(j = 0; j < adapter[i]->base.buffer_size; j++)
                         {
-                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank]->get_value(adapter[i]->aggregator.first[active_bank]);
-                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank]->get_value(adapter[i]->aggregator.second[active_bank]);
-                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank]->get_value(adapter[i]->aggregator.third[active_bank]);
+                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank0]->get_value(adapter[i]->aggregator.first[active_bank0]);
+                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank1]->get_value(adapter[i]->aggregator.second[active_bank1]);
+                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank2]->get_value(adapter[i]->aggregator.third[active_bank2]);
 
                             adapter[i]->convert_to_dma(adapter[i]->base.write, j);
                             adapter[i]->flash_led_count++;
@@ -134,6 +146,8 @@ void adapter_process(struct adapter **adapter, int ifnum)
                 }
                 else // data for all leds in current ledstrip is ready. Perform finish routine
                 {
+                    uint8_t k = 0;
+
                     if(adapter[i]->base.state != DR_STATE_SUSPEND)
                     {
                         continue;
@@ -144,19 +158,22 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         continue;
                     }
 
-                    adapter[i]->aggregator.first[active_bank]->reset_sequence(adapter[i]->aggregator.first[active_bank]);
-                    adapter[i]->aggregator.second[active_bank]->reset_sequence(adapter[i]->aggregator.second[active_bank]);
-                    adapter[i]->aggregator.third[active_bank]->reset_sequence(adapter[i]->aggregator.third[active_bank]);
+                    adapter[i]->aggregator.first[active_bank0]->reset_sequence(adapter[i]->aggregator.first[active_bank0]);
+                    adapter[i]->aggregator.second[active_bank1]->reset_sequence(adapter[i]->aggregator.second[active_bank1]);
+                    adapter[i]->aggregator.third[active_bank2]->reset_sequence(adapter[i]->aggregator.third[active_bank2]);
 
                     adapter[i]->base.write = adapter[i]->base.read = adapter[i]->base.start;
 
                     adapter[i]->flash_led_count = 0;
                     adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
                     
-                    if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter[i]->aggregator))
+                    for(k = 0; k < 3; k++)
                     {
-                        AGGREGATOR_SWITCH_ACTIVE_BANK(adapter[i]->aggregator);
-                        AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter[i]->aggregator);
+                        if(AGGREGATOR_IS_BANK_SWITCHING_NEED(adapter[i]->aggregator, k))
+                        {
+                            AGGREGATOR_SWITCH_ACTIVE_BANK(adapter[i]->aggregator, k);
+                            AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter[i]->aggregator, k);
+                        }
                     }
                 }
             }

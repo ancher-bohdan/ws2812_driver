@@ -19,61 +19,87 @@ static struct source *make_source_from_config(struct source_config *config)
 
 int make_source_aggregator_from_config(struct source_aggregator *aggregator, struct source_config *first, struct source_config *second, struct source_config *third)
 {
-    uint8_t inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator);
+    uint8_t inactive_bank;
 
-    source_aggregator_free(aggregator);
-
-    aggregator->first[inactive_bank] = make_source_from_config(first);
-    if(aggregator->first[inactive_bank] == NULL)
+    if(first != NULL)
     {
-        goto err_no_del;
+        inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator, 0);
+
+        source_aggregator_free(aggregator, 0);
+
+        aggregator->first[inactive_bank] = make_source_from_config(first);
+        if(aggregator->first[inactive_bank] == NULL)
+        {
+            return -1;
+        }
+        
+        AGGREGATOR_SET_BANK_SWITCHING_FLAG(*aggregator, 0);
     }
 
-    aggregator->second[inactive_bank] = make_source_from_config(second);
-    if(aggregator->second[inactive_bank] == NULL)
+    if(second != NULL)
     {
-        goto err_first_del;
+        inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator, 1);
+
+        source_aggregator_free(aggregator, 1);
+
+        aggregator->second[inactive_bank] = make_source_from_config(second);
+        if(aggregator->second[inactive_bank] == NULL)
+        {
+            return -1;
+        }
+
+        AGGREGATOR_SET_BANK_SWITCHING_FLAG(*aggregator, 1);
     }
 
-    aggregator->third[inactive_bank] = make_source_from_config(third);
-    if(aggregator->third[inactive_bank] == NULL)
+    if(third != NULL)
     {
-        goto err_second_del;
-    }
+        inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator, 2);
 
-    AGGREGATOR_SET_BANK_SWITCHING_FLAG(*aggregator);
+        source_aggregator_free(aggregator, 2);
+
+        aggregator->third[inactive_bank] = make_source_from_config(third);
+        if(aggregator->third[inactive_bank] == NULL)
+        {
+            return -1;
+        }
+
+        AGGREGATOR_SET_BANK_SWITCHING_FLAG(*aggregator, 2);
+    }
 
     return 0;
-
-err_second_del:
-    free(aggregator->second[inactive_bank]);
-err_first_del:
-    free(aggregator->first[inactive_bank]);
-err_no_del:
-    return -1;
 }
 
-void source_aggregator_free(struct source_aggregator *aggregator)
+void source_aggregator_free(struct source_aggregator *aggregator, uint8_t config_num)
 {
-    uint8_t inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator);
+    uint8_t inactive_bank = !AGGREGATOR_GET_ACTIVE_BANK(*aggregator, config_num);
     
     if(aggregator == NULL)
     {
         return;
     }
 
-    if(aggregator->first[inactive_bank] != NULL)
+    switch(config_num)
     {
-        free(aggregator->first[inactive_bank]);
-    }
+        case 0:
+            if(aggregator->first[inactive_bank] != NULL)
+            {
+                free(aggregator->first[inactive_bank]);
+            }
+            break;
+        case 1:
+            if(aggregator->second[inactive_bank] != NULL)
+            {
+                free(aggregator->second[inactive_bank]);
+            }
+            break;
+        case 2:
+            if(aggregator->third[inactive_bank] != NULL)
+            {
+                free(aggregator->third[inactive_bank]);
+            }
+            break;
+        default:
+            return;
 
-    if(aggregator->second[inactive_bank] != NULL)
-    {
-        free(aggregator->second[inactive_bank]);
-    }
-
-    if(aggregator->third[inactive_bank] != NULL)
-    {
-        free(aggregator->third[inactive_bank]);
     }
 }
