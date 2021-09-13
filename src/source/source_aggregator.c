@@ -2,6 +2,8 @@
 #include "source/source_trigonometric.h"
 #include "source/source_music.h"
 
+#include <stdio.h>
+
 static struct source *make_source_from_config(struct source_config *config)
 {
     switch (config->type)
@@ -102,4 +104,25 @@ void source_aggregator_free(struct source_aggregator *aggregator, uint8_t config
             return;
 
     }
+}
+
+int get_source_description(char *dst, struct source *s)
+{
+    struct source_linear *lin;
+    struct source_trigonometric *trig;
+    switch(s->magic)
+    {
+        case SOURCE_MAGIC_LINEAR:
+            lin = (struct source_linear *)s;
+            return sprintf(dst, "LINEAR: %dx+%d; y_max=%d; db=%d; dk=%d", lin->k, lin->b, lin->y_max, lin->step_for_b, lin->step_for_k);
+            break;
+        case SOURCE_MAGIC_TRIGONOMETRIC:
+            trig = (struct source_trigonometric *)s;
+            return sprintf(dst, "TRIGONOMETRIC: %d*sinx+%d; step_for_x=%d", trig->k, trig->b, trig->step_for_xn);
+            break;
+        case SOURCE_MAGIC_MUSIC:
+            return sprintf(dst, "MUSIC");
+            break;
+    }
+    return 0;
 }

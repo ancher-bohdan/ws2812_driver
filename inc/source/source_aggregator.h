@@ -67,6 +67,7 @@ struct source_config_music
 
 int make_source_aggregator_from_config(struct source_aggregator *aggregator, struct source_config *first, struct source_config *second, struct source_config *third);
 void source_aggregator_free(struct source_aggregator *aggregator, uint8_t config_num);
+int get_source_description(char *dst, struct source *s);
 
 extern void sampling_async_finish(struct source *handler);
 
