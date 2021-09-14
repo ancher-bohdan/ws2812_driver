@@ -113,6 +113,16 @@ void adapter_set_driver_id(struct adapter *adapter, uint32_t id)
 void adapter_process(struct adapter **adapter, int ifnum)
 {
     int i = 0;
+    uint8_t active_bank0[ifnum];
+    uint8_t active_bank1[ifnum];
+    uint8_t active_bank2[ifnum];
+
+    for(i = 0; i < ifnum; i++)
+    {
+        active_bank0[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
+        active_bank1[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
+        active_bank2[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
+    }
 
     while(_is_any_adapter_continue_process(adapter, ifnum))
     {
@@ -120,10 +130,6 @@ void adapter_process(struct adapter **adapter, int ifnum)
         {
             if(adapter[i]->is_continue)
             {
-                uint8_t active_bank0 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
-                uint8_t active_bank1 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
-                uint8_t active_bank2 = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
-
                 if(adapter[i]->flash_led_count < adapter[i]->base.led_count)
                 {
                     if(adapter[i]->base.read != adapter[i]->base.write 
@@ -159,9 +165,9 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         continue;
                     }
 
-                    adapter[i]->aggregator.first[active_bank0]->reset_sequence(adapter[i]->aggregator.first[active_bank0]);
-                    adapter[i]->aggregator.second[active_bank1]->reset_sequence(adapter[i]->aggregator.second[active_bank1]);
-                    adapter[i]->aggregator.third[active_bank2]->reset_sequence(adapter[i]->aggregator.third[active_bank2]);
+                    adapter[i]->aggregator.first[active_bank0[i]]->reset_sequence(adapter[i]->aggregator.first[active_bank0[i]]);
+                    adapter[i]->aggregator.second[active_bank1[i]]->reset_sequence(adapter[i]->aggregator.second[active_bank1[i]]);
+                    adapter[i]->aggregator.third[active_bank2[i]]->reset_sequence(adapter[i]->aggregator.third[active_bank2[i]]);
 
                     adapter[i]->base.write = adapter[i]->base.read = adapter[i]->base.start;
 
@@ -176,6 +182,10 @@ void adapter_process(struct adapter **adapter, int ifnum)
                             AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter[i]->aggregator, k);
                         }
                     }
+
+                    active_bank0[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
+                    active_bank1[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
+                    active_bank2[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
                 }
             }
         }
