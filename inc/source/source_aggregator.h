@@ -38,7 +38,7 @@ struct source_config_function
 {
     struct source_config base;
     
-    uint8_t k;
+    uint16_t k;
     uint16_t change_step_k;
     uint16_t change_step_b;
     uint16_t b;
