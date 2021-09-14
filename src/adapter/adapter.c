@@ -129,19 +129,20 @@ void adapter_process(struct adapter **adapter, int ifnum)
                     if(adapter[i]->base.read != adapter[i]->base.write 
                     || adapter[i]->base.write->state == DRBUF_STATE_FREE)
                     {
-                        uint8_t j = 0;
-                        for(j = 0; j < adapter[i]->base.buffer_size; j++)
+                        uint8_t j = adapter[i]->flash_led_count % adapter[i]->base.buffer_size;
+
+                        adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank0[i]]->get_value(adapter[i]->aggregator.first[active_bank0[i]]);
+                        adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank1[i]]->get_value(adapter[i]->aggregator.second[active_bank1[i]]);
+                        adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank2[i]]->get_value(adapter[i]->aggregator.third[active_bank2[i]]);
+
+                        adapter[i]->convert_to_dma(adapter[i]->base.write, j);
+                        adapter[i]->flash_led_count++;
+
+                        if((adapter[i]->flash_led_count % adapter[i]->base.buffer_size) == 0)
                         {
-                            adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank0]->get_value(adapter[i]->aggregator.first[active_bank0]);
-                            adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank1]->get_value(adapter[i]->aggregator.second[active_bank1]);
-                            adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank2]->get_value(adapter[i]->aggregator.third[active_bank2]);
-
-                            adapter[i]->convert_to_dma(adapter[i]->base.write, j);
-                            adapter[i]->flash_led_count++;
+                            adapter[i]->base.write->state = DRBUF_STATE_BUSY;
+                            adapter[i]->base.write = adapter[i]->base.write->next;
                         }
-
-                        adapter[i]->base.write->state = DRBUF_STATE_BUSY;
-                        adapter[i]->base.write = adapter[i]->base.write->next;
                     }
                 }
                 else // data for all leds in current ledstrip is ready. Perform finish routine
