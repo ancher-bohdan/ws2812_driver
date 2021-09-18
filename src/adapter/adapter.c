@@ -1,6 +1,18 @@
 #include "adapter/adapter.h"
 #include "source/source.h"
 
+static struct source *clearing_source[3] = {NULL, NULL, NULL};
+
+static struct source_config_function config_for_clearing =
+{
+    .base.type = SOURCE_TYPE_LINEAR,
+    .k = 0,
+    .b = 255,
+    .change_step_b = 0,
+    .change_step_k = 0,
+    .y_max = 255,
+    .y_min = 0,
+};
 
 static struct source_config_function default_config =
 {
@@ -46,6 +58,76 @@ static bool _is_any_adapter_continue_process(struct adapter **adapters, int ifnu
     return false;
 }
 
+static void _set_clearing_sources( struct adapter *a)
+{
+    uint8_t i = 0;
+
+    for(i = 0; i < 3; i++)
+    {
+        if(clearing_source[i] == NULL)
+        {
+            clearing_source[i] = make_source_from_config((struct source_config *)(&config_for_clearing));
+        }
+    }
+
+#define BANK(CONF)  AGGREGATOR_IS_BANK_SWITCHING_NEED(a->aggregator, CONF) ? !AGGREGATOR_GET_ACTIVE_BANK(a->aggregator,CONF) : AGGREGATOR_GET_ACTIVE_BANK(a->aggregator,CONF)
+    a->backup_sources[0] = a->aggregator.first[BANK(0)];
+    a->backup_sources[1] = a->aggregator.second[BANK(1)];
+    a->backup_sources[2] = a->aggregator.third[BANK(2)];
+
+    a->aggregator.first[BANK(0)] = clearing_source[0];
+    a->aggregator.second[BANK(1)] = clearing_source[1];
+    a->aggregator.third[BANK(2)] = clearing_source[2];
+#undef BANK
+}
+
+static void _restore_sources_from_backup(struct adapter *a)
+{
+    a->aggregator.first[AGGREGATOR_GET_ACTIVE_BANK(a->aggregator,0)] = a->backup_sources[0];
+    a->aggregator.second[AGGREGATOR_GET_ACTIVE_BANK(a->aggregator,1)] = a->backup_sources[1];
+    a->aggregator.third[AGGREGATOR_GET_ACTIVE_BANK(a->aggregator,2)] = a->backup_sources[2];
+}
+
+static void _adapter_state_machine_handle(struct adapter *a)
+{
+    switch (a->state)
+    {
+    case ADAPTER_STATE_INIT:
+        //Something wrong; shouldn`t be here
+        assert_param(0);
+        break;
+    case ADAPTER_STATE_RUNNING:
+        //Nothing to do here. Just break
+        break;
+    case ADAPTER_STATE_STOP_REQUESTED:
+        _set_clearing_sources(a);
+        a->state = ADAPTER_STATE_STOP;
+        break;
+    case ADAPTER_STATE_STOP:
+        _restore_sources_from_backup(a);
+        adapter_stop(a);
+        break;
+    case ADAPTER_STATE_CLEAR_REQUESTED:
+        _set_clearing_sources(a);
+        a->state = ADAPTER_STATE_CLEARING;
+        break;
+    case ADAPTER_STATE_CLEARING:
+        _restore_sources_from_backup(a);
+        a->base.led_count = a->requested_led_count;
+        a->state = ADAPTER_STATE_RUNNING;
+        break;
+    case ADAPTER_STATE_SET_HSV_SCHEME_REQUESTED:
+        a->convert_to_dma = __hsv2dma;
+        a->state = ADAPTER_STATE_RUNNING;
+        break;
+    case ADAPTER_STATE_SET_RGB_SCHEME_REQUESTED:
+        a->convert_to_dma = __rgb2dma;
+        a->state = ADAPTER_STATE_RUNNING;
+    default:
+        break;
+    }
+}
+
 struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supported_color_scheme scheme, uint32_t led_count, uint32_t delay)
 {
     struct adapter *adapter = (struct adapter *) malloc (sizeof(struct adapter));
@@ -58,6 +140,8 @@ struct adapter* adapter_init(struct ws2812_operation_fn_table *fn, enum supporte
     adapter->is_continue = false;
     adapter->flash_led_count = 0;
     adapter->hw_delay = delay;
+    adapter->state = ADAPTER_STATE_INIT;
+    adapter->requested_led_count = 0;
     
     adapter->aggregator.flags = 0;
     adapter->aggregator.first[0] = NULL;
@@ -101,13 +185,91 @@ void adapter_start(struct adapter *adapter)
     }
 
     adapter->is_continue = true;
+    adapter->state = ADAPTER_STATE_RUNNING;
     adapter->base.driver_start(&adapter->base);
     adapter->base.dma_swallow_workaround(&(adapter->base));
+}
+
+void adapter_stop(struct adapter *adapter)
+{
+    adapter->is_continue = false;
+    adapter->state = ADAPTER_STATE_STOP;
+    adapter->base.driver_stop(&adapter->base);
 }
 
 void adapter_set_driver_id(struct adapter *adapter, uint32_t id)
 {
     adapter->base.id = id;
+}
+
+void adapter_set_hw_delay(struct adapter *adapter, uint32_t delay)
+{
+    adapter->hw_delay = delay;
+}
+
+int adapter_set_color_scheme(struct adapter *adapter, enum supported_color_scheme scheme)
+{
+    if(adapter->state != ADAPTER_STATE_RUNNING)
+    {
+        return A_NOT_PERM;
+    }
+
+    switch (scheme)
+    {
+    case RGB:
+        adapter->state = ADAPTER_STATE_SET_RGB_SCHEME_REQUESTED;
+        break;
+    case HSV:
+        adapter->state = ADAPTER_STATE_SET_HSV_SCHEME_REQUESTED;
+        break;
+    default:
+        break;
+    }
+    return A_EOK;
+}
+
+int adapter_set_if_up(struct adapter *adapter)
+{
+    if(adapter->state == ADAPTER_STATE_INIT || adapter->state == ADAPTER_STATE_STOP)
+    {
+        adapter_start(adapter);
+        return A_EOK;
+    }
+    return A_NOT_PERM;
+}
+
+int adapter_set_if_down(struct adapter *adapter)
+{
+    if(adapter->state == ADAPTER_STATE_RUNNING)
+    {
+        adapter->state = ADAPTER_STATE_STOP_REQUESTED;
+        return A_EOK;
+    }
+    return A_NOT_PERM;
+}
+
+int adapter_set_led_count(struct adapter *adapter, uint32_t ledcount)
+{
+    if(adapter->state == ADAPTER_STATE_RUNNING)
+    {
+        if(ledcount == adapter->base.led_count)
+        {
+            //Nothing to be done. Return
+            return A_EOK;
+        }
+        else if (ledcount > adapter->base.led_count)
+        {
+            adapter->base.led_count = ledcount;
+            return A_EOK;
+        }
+        else // ledcount < adapter->base.ledcount
+        {
+            adapter->requested_led_count = ledcount;
+            adapter->state = ADAPTER_STATE_CLEAR_REQUESTED;
+            return A_EOK;
+        }
+    }
+    return A_NOT_PERM;
 }
 
 void adapter_process(struct adapter **adapter, int ifnum)
@@ -160,7 +322,7 @@ void adapter_process(struct adapter **adapter, int ifnum)
                         continue;
                     }
 
-                    if(!adapter[i]->base.fn_table->hw_delay(adapter[i]->base.id, adapter[i]->hw_delay))
+                    if(!adapter[i]->base.fn_table->hw_delay(adapter[i]->base.id, adapter[i]->state == ADAPTER_STATE_CLEAR_REQUESTED || adapter[i]->state == ADAPTER_STATE_CLEARING ? 0 : adapter[i]->hw_delay))
                     {
                         continue;
                     }
@@ -173,6 +335,8 @@ void adapter_process(struct adapter **adapter, int ifnum)
 
                     adapter[i]->flash_led_count = 0;
                     adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
+
+                    _adapter_state_machine_handle(adapter[i]);
                     
                     for(k = 0; k < 3; k++)
                     {

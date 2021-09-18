@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-static struct source *make_source_from_config(struct source_config *config)
+struct source *make_source_from_config(struct source_config *config)
 {
     switch (config->type)
     {
