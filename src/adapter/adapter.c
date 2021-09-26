@@ -278,12 +278,15 @@ void adapter_process(struct adapter **adapter, int ifnum)
     uint8_t active_bank0[ifnum];
     uint8_t active_bank1[ifnum];
     uint8_t active_bank2[ifnum];
+    uint32_t timeout[ifnum];
 
     for(i = 0; i < ifnum; i++)
     {
         active_bank0[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
         active_bank1[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
         active_bank2[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
+
+        timeout[i] = adapter[i]->base.led_count;
     }
 
     while(_is_any_adapter_continue_process(adapter, ifnum))
@@ -292,16 +295,25 @@ void adapter_process(struct adapter **adapter, int ifnum)
         {
             if(adapter[i]->is_continue)
             {
-                if(adapter[i]->flash_led_count < adapter[i]->base.led_count)
+                if((adapter[i]->flash_led_count < adapter[i]->base.led_count) && (timeout[i] != 0))
                 {
                     if(adapter[i]->base.read != adapter[i]->base.write 
                     || adapter[i]->base.write->state == DRBUF_STATE_FREE)
                     {
+                        uint16_t tmp;
                         uint8_t j = adapter[i]->flash_led_count % adapter[i]->base.buffer_size;
 
-                        adapter[i]->base.write->color[j].first = adapter[i]->aggregator.first[active_bank0[i]]->get_value(adapter[i]->aggregator.first[active_bank0[i]]);
-                        adapter[i]->base.write->color[j].second = adapter[i]->aggregator.second[active_bank1[i]]->get_value(adapter[i]->aggregator.second[active_bank1[i]]);
-                        adapter[i]->base.write->color[j].third = adapter[i]->aggregator.third[active_bank2[i]]->get_value(adapter[i]->aggregator.third[active_bank2[i]]);
+                        tmp = adapter[i]->aggregator.first[active_bank0[i]]->get_value(adapter[i]->aggregator.first[active_bank0[i]]);
+                        if(tmp == SOURCE_INVALID_VALUE) goto error;
+                        adapter[i]->base.write->color[j].first = tmp;
+
+                        tmp = adapter[i]->aggregator.second[active_bank1[i]]->get_value(adapter[i]->aggregator.second[active_bank1[i]]);
+                        if(tmp == SOURCE_INVALID_VALUE) goto error;
+                        adapter[i]->base.write->color[j].second = tmp;
+
+                        tmp = adapter[i]->aggregator.third[active_bank2[i]]->get_value(adapter[i]->aggregator.third[active_bank2[i]]);
+                        if(tmp == SOURCE_INVALID_VALUE) goto error;
+                        adapter[i]->base.write->color[j].third = tmp;
 
                         adapter[i]->convert_to_dma(adapter[i]->base.write, j);
                         adapter[i]->flash_led_count++;
@@ -311,6 +323,8 @@ void adapter_process(struct adapter **adapter, int ifnum)
                             adapter[i]->base.write->state = DRBUF_STATE_BUSY;
                             adapter[i]->base.write = adapter[i]->base.write->next;
                         }
+                    error:
+                        timeout[i]--;
                     }
                 }
                 else // data for all leds in current ledstrip is ready. Perform finish routine
@@ -337,6 +351,8 @@ void adapter_process(struct adapter **adapter, int ifnum)
                     adapter[i]->base.dma_swallow_workaround(&(adapter[i]->base));
 
                     _adapter_state_machine_handle(adapter[i]);
+
+                    timeout[i] = adapter[i]->base.led_count;
                     
                     for(k = 0; k < 3; k++)
                     {
