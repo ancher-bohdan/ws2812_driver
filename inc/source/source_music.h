@@ -31,7 +31,6 @@ enum music_buffer_state
 struct music_buffer_node
 {
     int16_t *buffer;
-    uint32_t buf_size;
     uint32_t buf_offset;
     enum music_buffer_state state;
 
@@ -46,8 +45,9 @@ struct music_handler
 
     uint8_t flag;
     uint16_t fft_size;
+    uint32_t music_node_buffer_size;
 
-    void (*sampling_hw)(int16_t *dst, uint16_t sampling_size);
+    void (*sampling_hw)(int16_t *dst, uint16_t sampling_size, void (*finish_cbk)(void *arg), void *args);
     void (*fft_convert_hw)(int16_t *buf, uint16_t fft_size);
     void (*normalise_hw)(int16_t *buf, uint16_t fft_size);
 };

@@ -12,8 +12,7 @@
 
 #define wait_util(condition)            while(condition)
 
-//WARN!!!! - need to be changed to make in change in runtime
-#define CONFIG_LED_NUMBERS (118)
+void sampling_async_finish(void *args);
 
 static uint16_t find_correct_fft_size(uint16_t led_count)
 {
@@ -25,23 +24,6 @@ static uint16_t find_correct_fft_size(uint16_t led_count)
     }
 
     return (result >> 1);
-}
-
-static struct music_buffer_node *find_buffer_node_with_state(struct music_handler *handler, enum music_buffer_state required_state)
-{
-    uint32_t iterator = 0;
-    struct music_buffer_node *token = handler->write;
-
-    for(;iterator < MUSIC_BUFFER_COUNT; iterator++)
-    {
-        if(token->state == required_state)
-        {
-            return token;
-        }
-        token = token->next;
-    }
-
-    return NULL;
 }
 
 static struct music_buffer_node **__alloc_ring_buffer(struct music_handler *handler, struct music_buffer_node **prev)
@@ -61,7 +43,6 @@ static struct music_buffer_node **__alloc_ring_buffer(struct music_handler *hand
 
     (*prev)->state = MUSIC_STATE_FREE;
     (*prev)->buf_offset = 0;
-    (*prev)->buf_size = CONFIG_LED_NUMBERS;
 
     if(recursion_count != (MUSIC_BUFFER_COUNT - 1)) {
         recursion_count++;
@@ -80,7 +61,7 @@ static uint16_t get_value_music(struct source *source)
         return 0;
     }
 
-    if(internal->read->buf_offset == internal->read->buf_size)
+    if(internal->read->buf_offset == internal->music_node_buffer_size)
     {
         internal->read->buf_offset = 0;
         internal->read->state = MUSIC_STATE_FREE;
@@ -91,7 +72,7 @@ static uint16_t get_value_music(struct source *source)
             if(internal->write->state == MUSIC_STATE_FREE)
             {
                 internal->write->state = MUSIC_STATE_SAMPLING;
-                internal->sampling_hw(internal->write->buffer, internal->fft_size * 2);
+                internal->sampling_hw(internal->write->buffer, internal->fft_size * 2, sampling_async_finish, source);
             }
         }
     }
@@ -100,7 +81,7 @@ static uint16_t get_value_music(struct source *source)
     {
         if(internal->read->state == MUSIC_STATE_FREE)
         {
-            internal->sampling_hw(internal->read->buffer, internal->fft_size * 2);
+            internal->sampling_hw(internal->read->buffer, internal->fft_size * 2, sampling_async_finish, source);
 
             internal->read->state = MUSIC_STATE_NEED_CONVERT;
         }
@@ -149,7 +130,8 @@ struct source *source_init_music(struct source_config *config)
     result->get_value = get_value_music;
     result->reset_sequence = reset_sequence_music;
 
-    internal->fft_size = find_correct_fft_size(CONFIG_LED_NUMBERS);
+    internal->fft_size = find_correct_fft_size(music_config->initial_led_count);
+    internal->music_node_buffer_size = music_config->initial_led_count;
     internal->flag = 0;
     if(music_config->is_fft_conversion_async)
     {
@@ -177,7 +159,7 @@ struct source *source_init_music(struct source_config *config)
     if(IS_SAMPLING_ASYNC(internal->flag))
     {
         internal->write->state = MUSIC_STATE_SAMPLING;
-        internal->sampling_hw(internal->write->buffer, internal->fft_size * 2);
+        internal->sampling_hw(internal->write->buffer, internal->fft_size * 2, sampling_async_finish, internal);
     }
 
     return result;
@@ -188,8 +170,9 @@ err:
     return NULL;
 }
 
-void sampling_async_finish(struct source *handler)
+void sampling_async_finish(void *args)
 {
+    struct source *handler = (struct source *)args;
     struct music_handler *internal = (struct music_handler *)handler;
 
     if(handler->magic != SOURCE_MAGIC_MUSIC)
@@ -206,7 +189,7 @@ void sampling_async_finish(struct source *handler)
         if(internal->write->state == MUSIC_STATE_FREE)
         {
             internal->write->state = MUSIC_STATE_SAMPLING;
-            internal->sampling_hw(internal->write->buffer, internal->fft_size * 2);
+            internal->sampling_hw(internal->write->buffer, internal->fft_size * 2, sampling_async_finish, args);
         }
     }
 }
