@@ -87,7 +87,10 @@ static uint16_t get_value_music(struct source *source)
         }
     }
 
-    while(internal->read->state == MUSIC_STATE_SAMPLING) { }
+    if(internal->read->state == MUSIC_STATE_SAMPLING)
+    {
+        return SOURCE_INVALID_VALUE;
+    }
 
     if(internal->read->state == MUSIC_STATE_NEED_CONVERT)
     {

@@ -10,6 +10,8 @@
 #define SOURCE_MAGIC_TRIGONOMETRIC  ((SOURCE_MAGIC_BASE) + 1)
 #define SOURCE_MAGIC_MUSIC          ((SOURCE_MAGIC_BASE) + 2)
 
+#define SOURCE_INVALID_VALUE    0xFFFF
+
 struct source
 {
     uint32_t magic;
