@@ -108,7 +108,18 @@ static uint16_t get_value_music(struct source *source)
 
 static void reset_sequence_music(struct source* source)
 {
-    (void*)source;
+    struct music_handler *internal = (struct music_handler *)source;
+
+    if(source->magic != SOURCE_MAGIC_MUSIC)
+    {
+        return;
+    }
+
+    if(internal->read->buf_offset != internal->music_node_buffer_size)
+    {
+        internal->read->buf_offset = internal->music_node_buffer_size;
+    }
+
 }
 
 struct source *source_init_music(struct source_config *config)
