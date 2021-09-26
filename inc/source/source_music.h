@@ -40,6 +40,7 @@ struct music_buffer_node
 struct music_handler
 {
     struct source base;
+    char *source_name;
     struct music_buffer_node *read;
     struct music_buffer_node *write;
 

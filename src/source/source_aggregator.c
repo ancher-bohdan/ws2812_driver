@@ -110,6 +110,7 @@ int get_source_description(char *dst, struct source *s)
 {
     struct source_linear *lin;
     struct source_trigonometric *trig;
+    struct music_handler *mus;
     switch(s->magic)
     {
         case SOURCE_MAGIC_LINEAR:
@@ -121,7 +122,8 @@ int get_source_description(char *dst, struct source *s)
             return sprintf(dst, "TRIGONOMETRIC: %d*sinx+%d; step_for_x=%d", trig->k, trig->b, trig->step_for_xn);
             break;
         case SOURCE_MAGIC_MUSIC:
-            return sprintf(dst, "MUSIC");
+            mus = (struct music_handler *)s;
+            return sprintf(dst, "MUSIC: %4s", mus->source_name);
             break;
     }
     return 0;

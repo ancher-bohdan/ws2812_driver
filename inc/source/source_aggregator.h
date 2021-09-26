@@ -57,6 +57,8 @@ struct source_config_music
 {
     struct source_config base;
 
+    char *source_name;
+
     uint32_t initial_led_count;
 
     uint8_t is_fft_conversion_async;

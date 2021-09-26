@@ -144,6 +144,7 @@ struct source *source_init_music(struct source_config *config)
     result->get_value = get_value_music;
     result->reset_sequence = reset_sequence_music;
 
+    internal->source_name = music_config->source_name;
     internal->fft_size = find_correct_fft_size(music_config->initial_led_count);
     internal->music_node_buffer_size = music_config->initial_led_count;
     internal->flag = 0;
