@@ -362,6 +362,10 @@ void adapter_process(struct adapter **adapter, int ifnum)
                             AGGREGATOR_CLEAR_BANK_SWITCHING_FLAG(adapter[i]->aggregator, k);
                         }
                     }
+
+                    active_bank0[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 0);
+                    active_bank1[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 1);
+                    active_bank2[i] = AGGREGATOR_GET_ACTIVE_BANK(adapter[i]->aggregator, 2);
                 }
             }
         }
