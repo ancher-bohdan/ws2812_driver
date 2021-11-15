@@ -48,6 +48,7 @@ static struct music_buffer_node **__alloc_ring_buffer(struct music_handler *hand
         recursion_count++;
         return __alloc_ring_buffer(handler, &((*prev)->next));
     } else {
+        recursion_count = 0;
         return prev;
     }
 }
@@ -108,17 +109,6 @@ static uint16_t get_value_music(struct source *source)
 
 static void reset_sequence_music(struct source* source)
 {
-    struct music_handler *internal = (struct music_handler *)source;
-
-    if(source->magic != SOURCE_MAGIC_MUSIC)
-    {
-        return;
-    }
-
-    if(internal->read->buf_offset != internal->music_node_buffer_size)
-    {
-        internal->read->buf_offset = internal->music_node_buffer_size;
-    }
 
 }
 
